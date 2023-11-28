@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "string",
+      "enum": [
+        "c_w20_to_native"
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "native_to_c_w20"
+      ],
+      "properties": {
+        "native_to_c_w20": {
+          "type": "object",
+          "required": [
+            "denom"
+          ],
+          "properties": {
+            "denom": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}
