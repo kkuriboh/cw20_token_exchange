@@ -1,11 +1,11 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, BankMsg, DepsMut, Empty, Env, MessageInfo, Response, StdError, SubMsg, Uint128,
+    entry_point, BankMsg, DepsMut, Empty, Env, MessageInfo, Response, StdError, SubMsg,
 };
-use cw_storage_plus::Map;
+use cw_storage_plus::Set;
 use sei_cosmwasm::SeiMsg;
 
-const TOKEN_HISTORY: Map<&str, Uint128> = Map::new("TOKEN_HISTORY");
+const TOKEN_HISTORY: Set<&str> = Set::new("TOKEN_HISTORY");
 
 #[entry_point]
 pub fn instantiate(
@@ -52,18 +52,10 @@ pub fn execute(
                 let subdenom = make_subdenom(coin.denom.as_bytes()).to_string();
                 let new_denom = return_denom(&subdenom);
 
-                let _ = TOKEN_HISTORY.update(
-                    deps.storage,
-                    &new_denom,
-                    |value| -> Result<_, StdError> {
-                        Ok(if let Some(v) = value {
-                            v + coin.amount
-                        } else {
-                            create_denom_messages.push(SeiMsg::CreateDenom { subdenom });
-                            coin.amount
-                        })
-                    },
-                );
+                if !TOKEN_HISTORY.exists(deps.storage, &new_denom) {
+                    create_denom_messages.push(SeiMsg::CreateDenom { subdenom });
+                    let _ = TOKEN_HISTORY.save(deps.storage, &new_denom);
+                }
 
                 let new_coin = cosmwasm_std::Coin {
                     denom: new_denom,
@@ -88,12 +80,8 @@ pub fn execute(
 
         ExecMessage::NativeToCW20 { denom } => {
             let new_denom = return_denom(&make_subdenom(denom.as_bytes()));
-            for fund in info.funds.iter() {
-                let _ = TOKEN_HISTORY.update(deps.storage, &new_denom, |amount_of_minted_tokens| {
-                    amount_of_minted_tokens
-                        .map(|val| val - fund.amount)
-                        .ok_or(StdError::not_found("unexpected"))
-                });
+            if !TOKEN_HISTORY.exists(deps.storage, &new_denom) {
+                return Err(Errors::UnexchangedToken);
             }
 
             let amount = info.funds.iter().map(|c| c.amount).sum();

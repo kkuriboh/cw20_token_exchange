@@ -4,6 +4,7 @@ import { blake3 } from "@noble/hashes/blake3";
 import type { ExecMessage } from "./types";
 import parse_arguments from "./command_parser";
 import consts from "./consts";
+import { bail } from "./utils";
 
 const parsed_arguments = parse_arguments();
 process.stdout.write("\n");
@@ -30,20 +31,37 @@ for (const byte of denom_hash) {
 
 const coin_denom = `factory/${consts.CONTRACT_ADDRESS}/${subdenom}`;
 
-const print_balances = async () => {
-  const balance_outcoming = await client.getBalance(
+type balance = {
+  cw20: string;
+  native: string;
+};
+
+const get_balance = async (): Promise<balance> => {
+  const { amount: cw20 } = await client.getBalance(
     address,
     parsed_arguments.token_denom
   );
+  const { amount: native } = await client.getBalance(address, coin_denom);
 
-  const balance_incoming = await client.getBalance(address, coin_denom);
-
-  console.log(
-    `current balance:\n\tnative tokens: ${balance_incoming.amount}\n\tCW20 tokens: ${balance_outcoming.amount}`
-  );
+  return { cw20, native };
 };
 
-await print_balances();
+const print_balances = (balance: balance) =>
+  console.log(
+    `current balance:\n\tnative tokens: ${balance.native}\n\tCW20 tokens: ${balance.cw20}`
+  );
+
+const curr_balance = await get_balance();
+
+if (
+  (parsed_arguments.operation === "unwrap" &&
+    Number(curr_balance.native) < parsed_arguments.amount) ||
+  (parsed_arguments.operation === "wrap" &&
+    Number(curr_balance.cw20) < parsed_arguments.amount)
+)
+  bail("You don't have enough tokens");
+
+print_balances(curr_balance);
 
 try {
   const [message, denom]: [ExecMessage, string] =
@@ -72,4 +90,4 @@ try {
   console.log(`${err}`);
 }
 
-await print_balances();
+await get_balance().then(print_balances);

@@ -10,6 +10,6 @@ crate-type = ["cdylib", "rlib"]
 cosmwasm-std = { version = "1.5.0", features = ["staking"] }
 cosmwasm-schema = "1.5.0"
 sei-cosmwasm = "0.4.12"
-cw-storage-plus = "1.2.0"
+cw-storage-plus = { git = "https://github.com/kkuriboh/cw-storage-plus.git" }
 blake3 = "1.5.0"
 arrayvec = "0.7.4"

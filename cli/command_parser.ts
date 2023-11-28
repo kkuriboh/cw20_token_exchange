@@ -1,6 +1,7 @@
 import figlet from "figlet";
 import kleur from "kleur";
 import { program } from "commander";
+import { bail } from "./utils";
 
 type input = {
   amount: number;
@@ -17,11 +18,6 @@ program
   // .option("--user-address <address>")
   .option("--wallet-privkey <privkey>");
 
-const error_out = (message: string): never => {
-  console.error(message);
-  return process.exit(1);
-};
-
 export default (): input => {
   const banner = figlet.textSync("CROWNFI", {
     font: "Ogre",
@@ -32,17 +28,17 @@ export default (): input => {
   const opts = program.opts();
 
   const amount = Number(opts["amount"]);
-  if (isNaN(amount)) error_out("amount must be a number");
+  if (isNaN(amount)) bail("amount must be a number");
 
   const check_empty = (prop_name: string): string => {
     const value = opts[prop_name];
     if (value) return value;
-    return error_out(prop_name + " cannot be empty");
+    return bail(prop_name + " cannot be empty");
   };
 
   const operation = check_empty("operation") as any;
   if (operation !== "wrap" && operation !== "unwrap")
-    error_out("invalid option for operation");
+    bail("invalid option for operation");
 
   const token_denom = check_empty("tokenDenom");
 
